@@ -55,7 +55,7 @@ class Slack:
             If there is an error with the POST request.
         """
 
-        message = "```{0}```".format(text)
+        message = ">{0}".format(replace_formatting(text))
         template = {
             "text": message  # limit 40000
         }
@@ -71,3 +71,11 @@ class Slack:
                 raise SlackException(r.content)
 
             return r
+
+def replace_formatting(text):
+    text = text.replace('#u#', '') # Underline
+    text = text.replace('#b#', '*') # Bold
+    text = text.replace('#c#', '`')  # Code Block
+    text = text.replace('#p#', '* ')  # Bullet point
+
+    return text

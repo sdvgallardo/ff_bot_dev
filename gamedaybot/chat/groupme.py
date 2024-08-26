@@ -38,7 +38,7 @@ class GroupMe(object):
         """
         template = {
             "bot_id": self.bot_id,
-            "text": text,
+            "text": replace_formatting(text),
             "attachments": []
         }
 
@@ -52,3 +52,11 @@ class GroupMe(object):
                 raise GroupMeException(r.content)
 
             return r
+
+def replace_formatting(text):
+    text = text.replace('#u#', '') # Underline
+    text = text.replace('#b#', '') # Bold
+    text = text.replace('#c#', '')  # Code Block
+    text = text.replace('#p#', '')  # Bullet point
+
+    return text
