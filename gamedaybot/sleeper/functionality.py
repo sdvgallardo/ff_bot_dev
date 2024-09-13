@@ -11,6 +11,8 @@ from sleeper.api.unofficial import UPlayerAPIClient
 from sleeper.enum import Sport
 from gamedaybot.utils.util import two_step_dominance
 
+league = {}
+scoring_settings = {}
 matchups = {}
 users = {}
 rosters = {}
@@ -88,22 +90,33 @@ def get_projections(ppr=0, week=None, year=None):
         year = get_current_year()
 
     projections = {}
+    print(scoring_settings)
     for roster in rosters:
         user_id = roster.owner_id
         team_name = user_id_to_name.get(user_id, 'Unknown')
         projection = {}
         for player_id in roster.starters:
             player = get_player_projs(player_id)
-            if player is not None:
-                match ppr:
-                    case 1 | 'full' | '1' | '1.0':
-                        pts = 0 if player.stats.ppr is None else int(player.stats.ppr)
-                    case 0.5 | 'half' | '0.5' | '.5':
-                        pts = 0 if player.stats.pts_half_ppr is None else int(player.stats.pts_half_ppr)
-                    case _: #anything else
-                        pts = 0 if player.stats.pts_std is None else int(player.stats.pts_std)
-            else:
-                pts = 0
+            populated_stats = player.stats.get_populated_stats()
+            if (team_name == "theSeanO"): print(player_id, player.player.first_name, player.player.last_name, populated_stats)
+            pts = 0
+            for p in populated_stats:
+                if (p in scoring_settings):
+                    s = round(float(populated_stats[p]) * float(scoring_settings[p]), 2)
+                    score = f"{float(populated_stats[p])} * {float(scoring_settings[p])} = {s}"
+                    if (team_name == "theSeanO"): print(p, score)
+                    pts += s
+            if(team_name == "theSeanO"): print(pts)
+            # if player is not None:
+            #     match ppr:
+            #         case 1 | 'full' | '1' | '1.0':
+            #             pts = 0 if player.stats.ppr is None else int(player.stats.ppr)
+            #         case 0.5 | 'half' | '0.5' | '.5':
+            #             pts = 0 if player.stats.pts_half_ppr is None else int(player.stats.pts_half_ppr)
+            #         case _: #anything else
+            #             pts = 0 if player.stats.pts_std is None else int(player.stats.pts_std)
+            # else:
+            #     pts = 0
             projection[player_id] = pts
         projections[team_name] = projection
     return projections
@@ -627,16 +640,22 @@ def get_team_name_from_roster_id(roster_id: int):
 if __name__ == "__main__":
     # league_id = 992179861063786496 #4 man
     # league_id = 932291846812827648 # 10 man, no median
-    league_id = 916114371233808384 # includes top half wins
-    week = 2
+    # league_id = 916114371233808384 # includes top half wins
+    league_id = 1124815370767589376 # 16 man
+    week = 1
+    year = "2024"
 
     matchups = LeagueAPIClient.get_matchups_for_week(league_id=league_id, week=week)
     users = LeagueAPIClient.get_users_in_league(league_id=league_id)
     rosters = LeagueAPIClient.get_rosters(league_id=league_id)
     players = PlayerAPIClient.get_all_players(sport=Sport.NFL)
+    league = LeagueAPIClient.get_league(league_id=league_id)
+    for s in league.scoring_settings.__dict__:
+        if league.scoring_settings.__dict__[s] is not None:
+            scoring_settings[s] = round(league.scoring_settings.__dict__[s], 2)
 
-    all_player_stats = UPlayerAPIClient.get_all_player_stats(sport=Sport.NFL, season="2023", week=week)
-    all_player_projs = UPlayerAPIClient.get_all_player_projections(sport=Sport.NFL, season="2023", week=week)
+    all_player_stats = UPlayerAPIClient.get_all_player_stats(sport=Sport.NFL, season=year, week=week)
+    all_player_projs = UPlayerAPIClient.get_all_player_projections(sport=Sport.NFL, season=year, week=week)
 
     # Create a mapping of user_id to display name
     user_id_to_name = {user.user_id: user.display_name for user in users}
